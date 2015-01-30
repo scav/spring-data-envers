@@ -15,22 +15,7 @@
  */
 package org.springframework.data.envers.repository.support;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import javax.persistence.EntityManager;
-
-import org.hibernate.envers.AuditReader;
-import org.hibernate.envers.AuditReaderFactory;
-import org.hibernate.envers.DefaultRevisionEntity;
-import org.hibernate.envers.RevisionNumber;
-import org.hibernate.envers.RevisionTimestamp;
+import org.hibernate.envers.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -41,9 +26,13 @@ import org.springframework.data.history.Revisions;
 import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.data.repository.core.EntityInformation;
-import org.springframework.data.repository.history.RevisionRepository;
 import org.springframework.data.repository.history.support.RevisionEntityInformation;
 import org.springframework.util.Assert;
+
+import javax.persistence.EntityManager;
+import java.io.Serializable;
+import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * Repository implementation using Hibernate Envers to implement revision specific query methods.
@@ -52,7 +41,7 @@ import org.springframework.util.Assert;
  * @author Philipp Huegelmeyer
  */
 public class EnversRevisionRepositoryImpl<T, ID extends Serializable, N extends Number & Comparable<N>> extends
-		SimpleJpaRepository<T, ID> implements RevisionRepository<T, ID, N> {
+        SimpleJpaRepository<T, ID> implements EnversRevisionRepository<T, ID, N> {
 
 	private final EntityInformation<T, ?> entityInformation;
 	private final RevisionEntityInformation revisionEntityInformation;
@@ -141,6 +130,27 @@ public class EnversRevisionRepositoryImpl<T, ID extends Serializable, N extends 
 
 		return new PageImpl<Revision<N, T>>(revisions.getContent(), pageable, revisionNumbers.size());
 	}
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Revision<N, T> findEntityAtRevision(ID id, N revision) {
+
+        Class<T> type = entityInformation.getJavaType();
+        AuditReader reader = AuditReaderFactory.get(entityManager);
+
+        List<Number> revisions = reader.getRevisions(type, id);
+
+        if (revisions.isEmpty()) {
+            return null;
+        }
+
+        Class<?> revisionEntityClass = revisionEntityInformation.getRevisionEntityClass();
+
+        Object revisionEntity = reader.findRevision(revisionEntityClass, revision);
+        RevisionMetadata<N> metadata = (RevisionMetadata<N>) getRevisionMetadata(revisionEntity);
+        return new Revision<N, T>(metadata, reader.find(type, id, revision));
+
+    }
 
 	/**
 	 * Returns the entities in the given revisions for the entitiy with the given id.

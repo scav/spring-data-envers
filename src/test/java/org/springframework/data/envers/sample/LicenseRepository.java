@@ -15,14 +15,12 @@
  */
 package org.springframework.data.envers.sample;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.repository.history.RevisionRepository;
+import org.springframework.data.envers.repository.support.EnversRevisionRepository;
 
 /**
  * Repository for {@link License} objects.
  * 
  * @author Oliver Gierke
  */
-public interface LicenseRepository extends RevisionRepository<License, Long, Integer>, JpaRepository<License, Long> {
-
+public interface LicenseRepository extends EnversRevisionRepository<License, Long, Integer> {
 }

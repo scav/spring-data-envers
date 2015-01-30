@@ -15,12 +15,6 @@
  */
 package org.springframework.data.envers.repository.support;
 
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
-
-import java.util.Arrays;
-import java.util.HashSet;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,6 +30,12 @@ import org.springframework.data.history.Revision;
 import org.springframework.data.history.Revisions;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import java.util.Arrays;
+import java.util.HashSet;
+
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.assertThat;
 
 /**
  * Integration tests for repositories.
@@ -96,4 +96,23 @@ public class RepositoryIntegrationTest {
 	public void returnsEmptyRevisionsForUnrevisionedEntity() {
 		assertThat(countryRepository.findRevisions(100L).getContent(), is(hasSize(0)));
 	}
+
+    @Test
+    public void findEntityAtRevision() {
+        License license = new License();
+        license.name = "First"; // Revision 1
+        licenseRepository.save(license);
+
+        license.name = "Second"; // Revision 2
+        license = licenseRepository.save(license);
+
+        license.name = "Third"; // Revision 3
+        license = licenseRepository.save(license);
+
+        license.name = "Fourth"; // Revision 4
+        license = licenseRepository.save(license);
+
+        Revision<Integer, License> revision = licenseRepository.findEntityAtRevision(license.id, 4);
+        assertThat(revision.getEntity().name, is("Fourth"));
+    }
 }
